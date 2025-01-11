@@ -13,7 +13,7 @@ import { readAccountDataMap } from '~/io/accounts';
 import { readCsvTransactions } from '~/io/csvs';
 
 export const readTransactions = async () => {
-  const journals = await readDirAsList('../data', (text, name) =>
+  const journals = await readDirAsList(process.env.DATA_DIR!, (text, name) =>
     name.endsWith('.ledger') && name !== 'main.ledger'
       ? parseJournal(text)
       : null
@@ -78,7 +78,7 @@ export const readInferredTransactions = async () => {
 export const writeTransaction = async (t: Transaction) => {
   const [year, month] = t.date.split('-');
 
-  return updateFile(`../data/${year}/${month}.ledger`, (file) => {
+  return updateFile(`${process.env.DATA_DIR!}/${year}/${month}.ledger`, (file) => {
     const transactions = parseJournal(file);
 
     if (t.index !== undefined) transactions[t.index] = t;

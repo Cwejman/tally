@@ -55,7 +55,7 @@ export const readAccountDataMap = async (): Promise<
   Record<string, AccountData>
 > => {
   const accountCommandEntries = (
-    await fs.readFile('../data/main.ledger', 'utf8')
+    await fs.readFile(process.env.DATA_DIR! + '/main.ledger', 'utf8')
   )
     .split('\n')
     .reduce(

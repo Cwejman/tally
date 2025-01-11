@@ -5,7 +5,7 @@ import fs from 'fs/promises';
 //
 
 export const readCsvHeadingMappings = async () => {
-  const main = await fs.readFile('../data/main.ledger', 'utf8');
+  const main = await fs.readFile(process.env.DATA_DIR + '/main.ledger', 'utf8');
 
   const config = main.split('\n').find((l) => l.startsWith('; csv'));
 
@@ -24,7 +24,7 @@ export const readCsvHeadingMappings = async () => {
 //
 
 export const readCsvTransactions = async () => {
-  const csvFilePaths = await readDirAsList('../data', (text, name, path) =>
+  const csvFilePaths = await readDirAsList(process.env.DATA_DIR!, (text, name, path) =>
     name.endsWith('.csv') ? { text, path } : null
   );
 
@@ -54,7 +54,7 @@ export const readCsvTransactions = async () => {
     })
   );
 
-  const csvFileList = await readDirAsList('../data', (text, name) =>
+  const csvFileList = await readDirAsList(process.env.DATA_DIR!, (text, name) =>
     name.endsWith('.csv') ? text : null
   );
 
