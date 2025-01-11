@@ -1,7 +1,8 @@
 import { Posting, PostingType, Transaction } from '~/utils/ledger';
-import { Label } from '~/components/label';
+import { Label, LabelVariants } from '~/components/label';
 import { useAccountIcon } from '~/hooks/useAccountIcon';
 import React from 'react';
+import { Prefix, PrefixStr } from '~/components/prefix';
 
 interface TransactionRowProps {
   transaction: Transaction;
@@ -10,15 +11,21 @@ interface TransactionRowProps {
 export const TransactionRow = React.forwardRef<
   HTMLDivElement,
   TransactionRowProps
->(({ transaction: { amount, postings, payee } }, ref) => {
+>(({ transaction: { amount, postings, payee, prefix } }, ref) => {
   const objects = postings.filter((p) => p.type === PostingType.OBJECT);
   const subjects = postings.filter((p) => p.type === PostingType.SUBJECT);
 
   return (
     <div className="flex gap-2 p-1 rounded-md" ref={ref}>
-      <Label style="outline-heavy" amount={amount} label={payee} />
+      <Label
+        variant="default-heavy"
+        amount={amount}
+        label={payee}
+        rightIcon={prefix && <Prefix prefix={prefix as PrefixStr} />}
+      />
       {objects.map((posting, i) => (
         <PostingSelect
+          variant="muted"
           key={i}
           posting={posting}
           hideAmount={objects.length === 1}
@@ -27,7 +34,6 @@ export const TransactionRow = React.forwardRef<
       {subjects.map((posting, i) => (
         <PostingSelect
           key={i}
-          style="outline"
           hideAmount={subjects.length === 1}
           posting={posting}
         />
@@ -40,13 +46,13 @@ export const TransactionRow = React.forwardRef<
 
 interface PostingSelectProps {
   posting: Posting;
-  style?: 'default' | 'outline' | 'slate';
+  variant?: LabelVariants;
   hideAmount?: boolean;
 }
 
 const PostingSelect = ({
   posting: { amount, account },
-  style = 'default',
+  variant = 'default',
   hideAmount = false,
 }: PostingSelectProps) => {
   const icon = useAccountIcon(account);
@@ -55,7 +61,7 @@ const PostingSelect = ({
 
   return (
     <Label
-      style={style}
+      variant={variant}
       icon={icon}
       amount={hideAmount ? undefined : amount}
       label={childName}
