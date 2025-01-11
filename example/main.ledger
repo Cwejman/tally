@@ -1,0 +1,48 @@
+; csv date:Bokföringsdag amount:Belopp from:Avsändare to:Mottagare name:Namn desc:Rubrik currency:Valuta total:Saldo
+
+account Equity
+; icon 💰
+account Equity:OpeningBalance
+
+account Liabilities
+; icon 🏦
+
+account Income
+; icon 💰
+; match Transfer My Secret Boss /1234 00 4321/ !
+account Income:Jona
+; match Försäkringskassan /fkassa/
+; match Barnbidrag /barnbdr/
+; match Lön /lön|sallary/
+
+account Assets:Banking
+; icon 💵
+account Assets:Banking:Jona
+; accountNo 5678 00 8765
+; match Internal Transfer /5678 00 8765/
+
+account Expenses
+; icon 💵
+
+account Expenses:Fixed
+; icon 📅
+; match Apple
+; match Digital Ocean /digitalocean/
+; match Dropbox
+; match Länsförsäkringar /autogiro lf/
+; match Frisktandvård /frisktand/
+; match Nordic Wellness /nordicwell/
+; match Nordea /vardagspaket/ --comment=Vardagspaket
+; match Nordea /avgift extra kort/ --comment=Card Fee
+
+account Expenses:Groceries
+; icon 🛒
+; match Hemköp /hemkop|hemköp/
+; match Ica /\bica\b(?!.*maxi)/
+; match Ica Maxi
+; match Handlarn /droppen|handlarn/
+; match Coop
+; match U Braci
+; match Systembolaget /systembol/
+
+include 2023/01.ledger
