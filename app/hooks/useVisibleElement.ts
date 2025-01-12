@@ -39,7 +39,6 @@ export const useVisibleIndex = <V>(
   }, [threshold]);
 
   const setRef = (input: V, el: HTMLElement | null) => {
-    console.log(input, el);
     if (el) {
       const i = elementsRef.current.findIndex(([value]) =>
         compare(value, input)

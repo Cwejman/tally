@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+:root:has(.modal) {
+  overflow:hidden;
+}
+
 html,
 body {
   @apply bg-white dark:bg-gray-950;

@@ -1,6 +1,6 @@
 import { Posting, PostingType, Transaction } from '~/utils/ledger';
 import { Label, LabelVariants } from '~/components/label';
-import { useAccountIcon } from '~/hooks/useAccountIcon';
+import { useGetAccountIcon } from '~/hooks/useGetAccountIcon';
 import React from 'react';
 import { Prefix, PrefixStr } from '~/components/prefix';
 
@@ -21,7 +21,7 @@ export const TransactionRow = React.forwardRef<
         variant="default-heavy"
         amount={amount}
         label={payee}
-        rightIcon={prefix && <Prefix prefix={prefix as PrefixStr} />}
+        rightIcon={prefix !== '*' && <Prefix prefix={prefix as PrefixStr} />}
       />
       {objects.map((posting, i) => (
         <PostingSelect
@@ -55,14 +55,14 @@ const PostingSelect = ({
   variant = 'default',
   hideAmount = false,
 }: PostingSelectProps) => {
-  const icon = useAccountIcon(account);
+  const getIcon = useGetAccountIcon();
   const path = account.split(':');
   const childName = path[path.length - 1];
 
   return (
     <Label
       variant={variant}
-      icon={icon}
+      icon={getIcon(account)}
       amount={hideAmount ? undefined : amount}
       label={childName}
     />

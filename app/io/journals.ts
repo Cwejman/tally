@@ -68,7 +68,7 @@ export const readInferredTransactions = async () => {
         date,
         postings,
         amount: subjectsAmount,
-        prefix: objectAccount ? undefined : '@',
+        prefix: objectAccount ? '*' : '@',
         payee: objectAccount ? match.name : desc,
       };
     })
@@ -78,27 +78,30 @@ export const readInferredTransactions = async () => {
 export const writeTransaction = async (t: Transaction) => {
   const [year, month] = t.date.split('-');
 
-  return updateFile(`${process.env.DATA_DIR!}/${year}/${month}.ledger`, (file) => {
-    const transactions = parseJournal(file);
+  return updateFile(
+    `${process.env.DATA_DIR!}/${year}/${month}.ledger`,
+    (file) => {
+      const transactions = parseJournal(file);
 
-    if (t.index !== undefined) transactions[t.index] = t;
-    else transactions.push(t);
+      if (t.index !== undefined) transactions[t.index] = t;
+      else transactions.push(t);
 
-    return transactions
-      .sort(transactionSorterByObject)
-      .sort(transactionSorterByDate)
-      .map(transactionToPlainText)
-      .join('\n\n');
-  });
+      return transactions
+        .sort(transactionSorterByObject)
+        .sort(transactionSorterByDate)
+        .map(transactionToPlainText)
+        .join('\n\n');
+    }
+  );
 };
 
 //
 
 export enum TransactionStatus {
-  INFERRED,
-  AUTO_MATCHED,
-  CONNECTED,
-  UNCONNECTED,
+  INFERRED = 'INFERRED',
+  AUTO_MATCHED = 'AUTO_MATCHED',
+  CONNECTED = 'CONNECTED',
+  UNCONNECTED = 'UNCONNECTED',
 }
 
 export interface TransactionAggregation {
@@ -210,4 +213,12 @@ export const readAllTransactionYearMonths = async () =>
       return acc;
     },
     {} as Record<string, string[]>
+  );
+
+//
+
+export const readAllPayees = async () =>
+  (await readTransactions()).reduce(
+    (acc, t) => (acc.includes(t.payee) ? acc : acc.concat(t.payee)),
+    [] as string[]
   );

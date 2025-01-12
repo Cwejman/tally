@@ -8,6 +8,7 @@ export const useKeyPress = (
 ) => {
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
+      event.stopPropagation();
       callback(event.key, event); // Trigger the callback with the key and the event
     };
 

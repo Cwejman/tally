@@ -7,7 +7,6 @@ export interface TransactionGroupProps {
   transactions: TransactionAggregation[];
   selected: (TransactionAggregation | undefined)[];
   onClick: (aggregation: TransactionAggregation) => void;
-  rowRef: (aggregation: TransactionAggregation, el: HTMLElement | null) => void;
 }
 
 export const TransactionGroup = ({
@@ -15,7 +14,6 @@ export const TransactionGroup = ({
   transactions,
   selected,
   onClick,
-  rowRef,
 }: TransactionGroupProps) =>
   !!transactions.length && (
     <div className="flex flex-col items-left gap-2">
@@ -40,22 +38,14 @@ export const TransactionGroup = ({
           onClick={() => onClick(aggregation)}
         >
           {aggregation.status !== TransactionStatus.INFERRED && (
-            <TransactionRow
-              ref={(el) => rowRef(aggregation, el)}
-              transaction={aggregation.declared!}
-            />
+            <TransactionRow transaction={aggregation.declared!} />
           )}
           {(aggregation.status === TransactionStatus.INFERRED ||
             (aggregation.status === TransactionStatus.AUTO_MATCHED &&
               !equalTransactions(
                 aggregation.declared,
                 aggregation.inferred
-              ))) && (
-            <TransactionRow
-              ref={(el) => rowRef(aggregation, el)}
-              transaction={aggregation.inferred!}
-            />
-          )}
+              ))) && <TransactionRow transaction={aggregation.inferred!} />}
         </div>
       ))}
     </div>

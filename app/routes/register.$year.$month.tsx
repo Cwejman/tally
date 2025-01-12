@@ -5,24 +5,23 @@ import type {
   MetaFunction,
 } from '@remix-run/node';
 import { useFetcher, useLoaderData } from '@remix-run/react';
+import { equalTransactions, Transaction } from '~/utils/ledger';
 import {
-  equalTransactions,
-  sameTransactions,
-  Transaction,
-} from '~/utils/ledger';
-import {
+  readAllPayees,
   readStructuredAggregatedTransactionByYearMonth,
   TransactionAggregation,
   TransactionStatus as TStatus,
   writeTransaction,
 } from '~/io/journals';
 import { readAccountDataMap } from '~/io/accounts';
-import { useKeyPress } from '~/hooks/useKeypress';
 
-import { KeyBinding, Shortcuts } from './_components/shortcuts';
 import { EditModal } from './_components/edit-modal';
 import { TransactionGroup } from './_components/transaction-group';
-import { useVisibleIndex } from '~/hooks/useVisibleElement';
+import {
+  KeyBinding,
+  useRegisterKeyBindings,
+  useRequestKeyBindings,
+} from '~/context/keybindings';
 
 export const meta: MetaFunction = ({ params }) => [
   { title: `Ledger: Register ${params.year}-${params.month}` },
@@ -32,6 +31,7 @@ export const meta: MetaFunction = ({ params }) => [
 
 export const loader = async ({ params }: LoaderFunctionArgs) => ({
   accountDataMap: await readAccountDataMap(),
+  allPayees: await readAllPayees(),
   structuredTransactions: await readStructuredAggregatedTransactionByYearMonth(
     params.year!,
     params.month!
@@ -43,96 +43,96 @@ export const action: ActionFunction = async ({ request }) => {
   return new Response(null, { status: 200 });
 };
 
-//
-
-export default function Register$Year$Month() {
-  const [selected, setSelected] = useState<TransactionAggregation>();
-  const [edit, setEdit] = useState<Transaction>();
-  const [pendingConnection, setPendingConnection] = useState(false);
-
-  const { structuredTransactions } = useLoaderData<typeof loader>();
+export const useWriteTransaction = () => {
   const fetcher = useFetcher();
-  const [visibleAggregation, setAggregationRef] =
-    useVisibleIndex<TransactionAggregation>(0.1, sameTransactions);
 
-  const { declared, inferred } = selected ?? {};
-
-  //
-
-  const dispatchWriteTransaction = (transaction: Transaction) => {
-    setSelected(undefined);
-
+  return (transaction: Transaction) => {
     fetcher.submit(transaction as Record<string, any>, {
       method: 'POST',
       encType: 'application/json',
     });
   };
+};
+
+//
+
+export default function Register$Year$Month() {
+  const write = useWriteTransaction();
+  const { structuredTransactions } = useLoaderData<typeof loader>();
+
+  const [selected, setSelected] = useState<TransactionAggregation>();
+  const [pendingConnection, setPendingConnection] = useState(false);
+  const [edit, setEdit] = useState<Transaction>();
+
+  //
+
+  const { declared, inferred } = selected ?? {};
+
+  const showConnectMsg =
+    pendingConnection && selected?.status === TStatus.INFERRED;
+
+  //
+
+  const writeTransaction = (transaction: Transaction) => {
+    write(transaction);
+    setSelected(undefined);
+  };
 
   const connect = (base: Transaction, over: Transaction) =>
-    dispatchWriteTransaction({
+    writeTransaction({
       ...over,
       index: over.index ?? base.index,
       id: over.id ?? base.id,
     });
 
+  const startEdit = () => setEdit((declared ?? inferred)!);
+  const deselect = () => setSelected(undefined);
+
   //
 
-  const keyBindings = {
-    neutral: [
-      [
-        'ArrowDown',
-        'select transaction',
-        () =>
-          visibleAggregation.current && setSelected(visibleAggregation.current),
-      ],
-    ],
-    edit: [['Escape', 'exit', () => setEdit(undefined)]] as KeyBinding[],
-    [TStatus.CONNECTED]: [
-      ['e', 'edit', () => setEdit((declared ?? inferred)!)],
-      ['Escape', 'deselect', () => setSelected(undefined)],
-    ] as KeyBinding[],
-    [TStatus.UNCONNECTED]: [
-      ['e', 'edit', () => setEdit((declared ?? inferred)!)],
-      ['c', 'connect over', () => setPendingConnection(true)],
-      ['Escape', 'deselect', () => setSelected(undefined)],
-    ] as KeyBinding[],
-    [TStatus.INFERRED]: [
-      ['d', 'declare', () => dispatchWriteTransaction(inferred!)],
-      ['e', 'declare through edit', () => setEdit((declared ?? inferred)!)],
-      ['c', 'connect over', () => setPendingConnection(true)],
-      ['Escape', 'deselect', () => setSelected(undefined)],
-    ] as KeyBinding[],
-    [TStatus.AUTO_MATCHED]: [
-      ...(equalTransactions(declared!, inferred!)
-        ? [['a', 'accept', () => connect(declared!, inferred!)]]
-        : [
-            ['f', 'accept first', () => connect(inferred!, declared!)],
-            ['s', 'accept second', () => connect(declared!, inferred!)],
-          ]),
-      ['e', 'edit', () => setEdit((declared ?? inferred)!)],
-      ['Escape', 'deselect', () => setSelected(undefined)],
-    ] as KeyBinding[],
-  };
-
-  const shortcutsBindings =
-    (edit && keyBindings['edit']) ||
-    (selected && keyBindings[selected.status]) ||
-    keyBindings['neutral'];
-
-  const shortcutsMsg =
-    pendingConnection &&
-    (selected?.status === TStatus.INFERRED
-      ? 'select an unconnected transaction to override'
-      : 'select an inferred transaction to override');
-
-  useKeyPress(
-    (pressedKey) => {
-      console.log(pressedKey);
-      const binding = shortcutsBindings?.find(([key]) => key === pressedKey);
-      (binding?.[2] as () => void)?.();
-    },
-    [selected, edit]
+  useRequestKeyBindings(
+    edit
+      ? null
+      : selected
+        ? selected.status + (showConnectMsg ? ':connect' : '')
+        : 'default'
   );
+
+  const dynamicAutoMatchBindings = equalTransactions(declared!, inferred!)
+    ? [['a', 'accept', () => connect(declared!, inferred!)]]
+    : [
+        ['f', 'accept first', () => connect(inferred!, declared!)],
+        ['s', 'accept second', () => connect(declared!, inferred!)],
+      ];
+
+  useRegisterKeyBindings({
+    [TStatus.CONNECTED]: [
+      ['e', 'edit', startEdit],
+      ['Escape', 'deselect', deselect],
+    ],
+    [TStatus.UNCONNECTED]: [
+      ['e', 'edit', () => startEdit],
+      ['c', 'connect over', () => setPendingConnection(true)],
+      ['Escape', 'deselect', () => deselect],
+    ],
+    [TStatus.UNCONNECTED + ':connect']:
+      'select an unconnected transaction to override',
+    [TStatus.INFERRED]: [
+      ['d', 'declare', () => writeTransaction(inferred!)],
+      ['e', 'declare through edit', () => startEdit],
+      ['c', 'connect over', () => setPendingConnection(true)],
+      ['Escape', 'deselect', deselect],
+    ],
+    [TStatus.INFERRED + ':connect']:
+      'select an inferred transaction to override',
+    [TStatus.AUTO_MATCHED]: [
+      ...(dynamicAutoMatchBindings as KeyBinding[]),
+      ['e', 'edit', startEdit],
+      ['Escape', 'deselect', deselect],
+    ],
+  });
+
+  //
 
   const handleClick = (aggregation: TransactionAggregation) => {
     if (pendingConnection) {
@@ -144,6 +144,8 @@ export default function Register$Year$Month() {
       setSelected(aggregation);
     }
   };
+
+  console.log(structuredTransactions);
 
   return (
     <>
@@ -158,31 +160,25 @@ export default function Register$Year$Month() {
                   transactions={connected}
                   selected={[selected]}
                   heading="Connected"
-                  rowRef={setAggregationRef}
                 />
                 <TransactionGroup
                   onClick={handleClick}
                   transactions={unconnected}
                   selected={[selected]}
                   heading="Unconnected"
-                  rowRef={setAggregationRef}
                 />
                 <TransactionGroup
                   onClick={handleClick}
                   transactions={inferred}
                   selected={[selected]}
                   heading="Inferred"
-                  rowRef={setAggregationRef}
                 />
               </div>
             )
           )}
         </div>
       </div>
-      <EditModal transaction={edit} />
-      <Shortcuts data={shortcutsMsg || shortcutsBindings} />
+      {edit && <EditModal transaction={edit} exit={() => setEdit(undefined)} />}
     </>
   );
 }
-
-//

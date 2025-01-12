@@ -1,3 +1,5 @@
+export const absMod = (m: number, n = 0) => ((n % m) + m) % m;
+
 export const parseNum = (numStr: string) =>
   Number.parseFloat(numStr.replace(',', '.'));
 

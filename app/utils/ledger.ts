@@ -20,7 +20,7 @@ export interface Transaction {
   postings: Posting[];
   date: string;
   payee: string;
-  prefix?: string;
+  prefix: string;
   comment?: string;
 }
 
@@ -75,8 +75,6 @@ export const parseJournal = (text: string): Transaction[] =>
         });
 
       const [postings, amount] = standardizePostings(rawPostings);
-
-      if (date === '2023-07-13') console.log({ payee, rawPostings, postings });
 
       const withoutAmount = postings.filter((p) => p.amount === undefined);
       if (withoutAmount.length > 1) {
