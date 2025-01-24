@@ -27,7 +27,7 @@ export const parseCsv = (
 
   const headings = header.split(';').map((h) => h.trim());
 
-  return lines.sort().reduce((acc, line) => {
+  return lines.sort().reduce((acc, line, index) => {
     const columns = line.split(';');
 
     const get = (key: keyof typeof headingMappings) => {
@@ -48,19 +48,25 @@ export const parseCsv = (
       return columns[index];
     };
 
-    return [
-      ...acc,
-      {
-        date: get('date').replace(/\//g, '-'),
-        amount: C.parseNum(get('amount')),
-        total: C.parseNum(get('total')),
-        desc:
-          (get('name') ? get('name') + ' - ' : '') +
-          get('desc').replace(/Kortköp\ [0-9]{6,6}\ /g, ''),
-        accountNo: get('from') || get('to'),
-        currency: get('currency'),
-        id: getCsvEntryId(line),
-      } as CsvTransaction,
-    ];
+    try {
+      return [
+        ...acc,
+        {
+          date: get('date').replace(/\//g, '-'),
+          amount: C.parseNum(get('amount')),
+          total: C.parseNum(get('total')),
+          desc:
+            (get('name') ? get('name') + ' - ' : '') +
+            get('desc').replace(/Kortköp\ [0-9]{6,6}\ /g, ''),
+          accountNo: get('from') || get('to'),
+          currency: get('currency'),
+          id: getCsvEntryId(line),
+        } as CsvTransaction,
+      ];
+    } catch (e) {
+      throw new Error(
+        'Failed to parse csv line (#' + index + '): ' + line + '\n' + e
+      );
+    }
   }, [] as CsvTransaction[]);
 };
