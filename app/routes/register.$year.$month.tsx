@@ -111,7 +111,7 @@ export default function Register$Year$Month() {
       ['Escape', 'deselect', deselect],
     ],
     [TStatus.UNCONNECTED]: [
-      ['e', 'edit', () => startEdit],
+      ['e', 'edit', startEdit],
       ['c', 'connect over', () => setPendingConnection(true)],
       ['Escape', 'deselect', () => deselect],
     ],
@@ -119,7 +119,7 @@ export default function Register$Year$Month() {
       'select an unconnected transaction to override',
     [TStatus.INFERRED]: [
       ['d', 'declare', () => writeTransaction(inferred!)],
-      ['e', 'declare through edit', () => startEdit],
+      ['e', 'declare through edit', startEdit],
       ['c', 'connect over', () => setPendingConnection(true)],
       ['Escape', 'deselect', deselect],
     ],
