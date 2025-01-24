@@ -109,8 +109,9 @@ export const KeybindingsProvider = ({ children }: KeybindingsProviderProps) => {
       {children}
       <div
         className={
-          'fixed inset-0 flex flex-col justify-end items-center transition-opacity' +
-          'bg-gradient-to-t from-black/15 pointer-events-none ' +
+          'fixed bottom-0 left-0 h-32 w-full flex flex-col justify-end ' +
+          'items-center transition-opacity bg-gradient-to-t from-black/10 ' +
+          'pointer-events-none ' +
           (bindings ? 'opacity-100' : 'opacity-0')
         }
       >
