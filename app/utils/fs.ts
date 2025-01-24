@@ -99,8 +99,17 @@ export const readDirAsList = async <T>(
 
 export const updateFile = async (
   path: string,
-  updateFn: (input: string) => string
+  updateFn: (input: string | null) => string
 ) => {
-  const file = await fs.readFile(path, 'utf-8');
+  let file: string | null = null;
+
+  try {
+    file = await fs.readFile(path, 'utf-8');
+  } catch (e) {
+    console.warn(
+      `[updateFile]: Failed to load file (${path}) – passing null to update fn`
+    );
+  }
+
   return fs.writeFile(path, updateFn(file));
 };

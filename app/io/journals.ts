@@ -81,7 +81,7 @@ export const writeTransaction = async (t: Transaction) => {
   return updateFile(
     `${process.env.DATA_DIR!}/${year}/${month}.ledger`,
     (file) => {
-      const transactions = parseJournal(file);
+      const transactions = file ? parseJournal(file) : [];
 
       if (t.index !== undefined) transactions[t.index] = t;
       else transactions.push(t);
