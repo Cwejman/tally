@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Transaction } from '~/utils/ledger';
 import { Prefix, PrefixStr } from '~/components/prefix';
 import { useGetAccountIcon } from '~/hooks/useGetAccountIcon';
@@ -30,7 +30,7 @@ const countingMap = ['1st', '2nd', '3rd', '4th', '5th', '6th', '8th'];
 export const EditModal = ({ transaction, exit }: EditModalProps) => {
   const write = useWriteTransaction();
   const getIcon = useGetAccountIcon();
-  const { allPayees } = useLoaderData<typeof loader>();
+  const { allPayees, accountDataMap } = useLoaderData<typeof loader>();
 
   const [search, setSearch] = useState<string>('');
   const [confirmExit, setConfirmExit] = useState<boolean>(false);
@@ -41,14 +41,20 @@ export const EditModal = ({ transaction, exit }: EditModalProps) => {
 
   //
 
+  const accounts = useMemo(() => Object.keys(accountDataMap), [accountDataMap]);
+
   const searchResults =
     prop === ':payee'
       ? allPayees.filter((payee) =>
           payee.toLowerCase().startsWith(search.toLowerCase())
         )
-      : null;
+      : prop === ':posting:account'
+        ? accounts.filter((account) =>
+            account.toLowerCase().includes(search.toLowerCase())
+          )
+        : null;
 
-  const postingsWithIcons = transaction.postings.map((p) => ({
+  const postingsWithIcons = body.postings.map((p) => ({
     ...p,
     icon: getIcon(p.account),
   }));
@@ -92,11 +98,12 @@ export const EditModal = ({ transaction, exit }: EditModalProps) => {
     if (prop === ':payee') {
       setBody({ ...body!, payee: selected ?? search });
     }
+    console.log(posting, selected);
     if (prop === ':posting:account') {
       setBody({
         ...body!,
         postings: body!.postings.map((p, i) =>
-          i === posting ? { ...p, account: selected ?? search } : p
+          i === posting ? { ...p, account: selected! } : p
         ),
       });
     }
@@ -119,20 +126,12 @@ export const EditModal = ({ transaction, exit }: EditModalProps) => {
     },
   ]);
 
-  const selectBindings: KeyBinding[] = [
-    ['ArrowUp', 'select prev', () => selectInDirection(-1)],
-    ['ArrowDown', 'select next', () => selectInDirection(1)],
-    ...(selected
-      ? ([['Enter', 'choose selected payee', searchChoose]] as KeyBinding[])
-      : search
-        ? ([['Enter', 'choose new payee', searchChoose]] as KeyBinding[])
-        : []),
-  ];
+  const selectBindings: KeyBinding[] = [];
 
   useRegisterKeyBindings({
     edit: [
       ['Escape', 'exit', safeExit],
-      ['s', 'save', () => save],
+      ['Enter', 'save', save],
       ['d', 'date', () => setProp(':date')],
       ['p', 'payee', () => setProp(':payee')],
       ['P', 'prefix', () => setBody(shiftPrefix)],
@@ -149,10 +148,23 @@ export const EditModal = ({ transaction, exit }: EditModalProps) => {
     ],
     'edit:posting:account': [
       ['Escape', 'back', () => exitSearch(':posting')],
-      ...selectBindings,
+      ['ArrowUp', 'select prev', () => selectInDirection(-1)],
+      ['ArrowDown', 'select next', () => selectInDirection(1)],
+      ...(selected
+        ? ([['Enter', 'choose selected account', searchChoose]] as KeyBinding[])
+        : []),
     ],
     'edit:posting:amount': [['Escape', 'back', () => setProp(':posting')]],
-    'edit:payee': [['Escape', 'back', () => exitSearch()], ...selectBindings],
+    'edit:payee': [
+      ['Escape', 'back', () => exitSearch()],
+      ['ArrowUp', 'select prev', () => selectInDirection(-1)],
+      ['ArrowDown', 'select next', () => selectInDirection(1)],
+      ...(selected
+        ? ([['Enter', 'choose selected payee', searchChoose]] as KeyBinding[])
+        : search
+          ? ([['Enter', 'choose new payee', searchChoose]] as KeyBinding[])
+          : []),
+    ],
     'edit:date': [['Escape', 'back', () => setProp(undefined)]],
   });
 
@@ -172,7 +184,17 @@ export const EditModal = ({ transaction, exit }: EditModalProps) => {
 
   return (
     <div className="modal fixed inset-0 flex items-center justify-center bg-gray-500/85 backdrop-grayscale">
-      <div className="bg-white rounded-lg shadow-lg min-w-96 overflow-hidden">
+      <div
+        className={
+          'bg-white rounded-lg shadow-lg min-w-96 ' +
+          ' overflow-hidden ' +
+          (body.prefix === '@'
+            ? 'border-2 border-red-400'
+            : body.prefix === '!'
+              ? 'border-2 border-yellow-400'
+              : '')
+        }
+      >
         {searchViewActive ? (
           <div className="modal fixed inset-0 flex items-center justify-center bg-black bg-opacity-30">
             <div className="bg-white rounded-lg shadow-lg min-w-96 overflow-hidden">
@@ -185,17 +207,21 @@ export const EditModal = ({ transaction, exit }: EditModalProps) => {
               />
               <div className="overflow-scroll max-h-96">
                 {searchResults &&
-                  searchResults.map((text, i) => (
-                    <div
-                      key={text}
-                      className={
-                        'py-2 px-4 border-b border-gray-200 ' +
-                        (selected === text ? 'bg-blue-100' : '')
-                      }
-                    >
-                      {text}
-                    </div>
-                  ))}
+                  searchResults.map((text, i) => {
+                    const icon = prop === ':posting:account' && getIcon(text);
+                    return (
+                      <div
+                        key={i}
+                        className={
+                          'px-4 py-2 border-b border-gray-200 flex ' +
+                          (selected === text ? 'bg-blue-100' : '')
+                        }
+                      >
+                        {icon && <span className="mr-2">{icon}</span>}
+                        {text}
+                      </div>
+                    );
+                  })}
               </div>
             </div>
           </div>
@@ -213,11 +239,11 @@ export const EditModal = ({ transaction, exit }: EditModalProps) => {
               )}
             </div>
             {postingsWithIcons.map((p, i) => (
-              <div key={i} className="px-4 py-3 border-b border-gray-200">
+              <div key={i} className="px-4 py-3 border-b border-gray-200 flex">
                 {p.icon && <span className="mr-2">{p.icon}</span>}
-                {p.account}
+                <span className="mr-auto">{p.account}</span>
                 {p.amount && (
-                  <span className="pl-10 font-medium">
+                  <span className="pl-10 ml-auto font-medium">
                     {twoDigNum(p.amount)}{' '}
                     <span className="font-normal opacity-90">{p.currency}</span>
                   </span>
