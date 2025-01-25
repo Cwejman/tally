@@ -177,29 +177,14 @@ export const readAggregatedTransactions = async () => {
 
 //
 
-export const readStructuredAggregatedTransactionByYearMonth = async (
+export const readAggregatedTransactionsByYearMonth = async (
   year: string,
   month: string
-) => {
-  const all = (await readAggregatedTransactions()).filter((agg) => {
+) =>
+  (await readAggregatedTransactions()).filter((agg) => {
     const date = agg.date!.split('-');
     return date[0] === year && date[1] === month;
   });
-
-  const allSorted = all
-    .sort(transactionSorterByObject)
-    .sort(transactionSorterByDate);
-
-  return C.mapObj(groupByDate(allSorted), (list) => ({
-    connected: list.filter((t) => t.status === TransactionStatus.CONNECTED),
-    unconnected: list.filter(
-      (t) =>
-        t.status === TransactionStatus.UNCONNECTED ||
-        t.status === TransactionStatus.AUTO_MATCHED
-    ),
-    inferred: list.filter((t) => t.status === TransactionStatus.INFERRED),
-  }));
-};
 
 //
 

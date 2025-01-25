@@ -98,3 +98,21 @@ export const deepCompare = (obj1: any, obj2: any): boolean => {
   // Fallback for other types (e.g., mismatched arrays or objects)
   return false;
 };
+
+//
+
+export const groupBy = <T, K extends keyof any>(
+  array: T[],
+  getKey: (element: T) => K
+): Record<K, T[]> =>
+  array.reduce(
+    (result, element) => {
+      const key = getKey(element);
+      if (!result[key]) {
+        result[key] = [];
+      }
+      result[key].push(element);
+      return result;
+    },
+    {} as Record<K, T[]>
+  );

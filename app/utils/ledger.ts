@@ -1,5 +1,5 @@
 import * as C from './common';
-import { TransactionAggregation } from '~/io/journals';
+import { TransactionAggregation, TransactionStatus } from '~/io/journals';
 
 export enum PostingType {
   SUBJECT,
@@ -247,6 +247,26 @@ export const groupByDate = <T extends Transaction | TransactionAggregation>(
     }),
     {} as Record<string, T[]>
   );
+
+//
+
+export interface StructuredTransactionAggregations {
+  connected: TransactionAggregation[];
+  unconnected: TransactionAggregation[]; // Includes auto-matched
+  inferred: TransactionAggregation[];
+}
+
+export const structureTransactions = (
+  list: TransactionAggregation[]
+): StructuredTransactionAggregations => ({
+  connected: list.filter((t) => t.status === TransactionStatus.CONNECTED),
+  unconnected: list.filter(
+    (t) =>
+      t.status === TransactionStatus.UNCONNECTED ||
+      t.status === TransactionStatus.AUTO_MATCHED
+  ),
+  inferred: list.filter((t) => t.status === TransactionStatus.INFERRED),
+});
 
 //
 
